@@ -11,11 +11,7 @@ import java.io.IOException;
 public class EchoApplication {
 
 	public static void main(String[] args) {
-		try {
-			FirebaseInitializer.initialize();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		SpringApplication.run(EchoApplication.class, args);
+        FirebaseInitializer.initialize();
+        SpringApplication.run(EchoApplication.class, args);
 	}
 }
