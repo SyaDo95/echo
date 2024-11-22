@@ -7,6 +7,9 @@ import com.google.firebase.auth.FirebaseToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -18,15 +21,17 @@ public class AuthController {
     private ChatService chatService;
 
     @PostMapping("/verifyToken")
-    public String verifyToken(@RequestBody String idToken) {
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(idToken);
-        if (decodedToken != null) {
+    public String verifyToken(@RequestBody Map<String, String> request) {
+        try {
+            String idToken = request.get("idToken");
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(idToken);
             String uid = decodedToken.getUid();
-            // UID로 사용자 생성 또는 조회
             User user = chatService.getOrCreateUser(uid);
             return user.getUid(); // UID 반환
-        } else {
-            return "Invalid token";
+        } catch (IllegalArgumentException e) {
+            return "Invalid token: " + e.getMessage();
+        } catch (Exception e) {
+            return "Error verifying token: " + e.getMessage();
         }
     }
 }
