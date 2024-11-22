@@ -33,3 +33,5 @@ build/
 .vscode/
 # .gitignore 파일에 추가
 src/main/resources/echo-auth-1107-firebase-adminsdk-*.json
+src/main/resources/.env
+src/main/resources/application.properties
