@@ -6,10 +6,16 @@ import com.echoproject.echo.repository.ChatHistoryRepository;
 import com.echoproject.echo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+
+
 @Service
 public class ChatService {
+    private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
+
     @Autowired
     private UserRepository userRepository;
 
@@ -40,11 +46,7 @@ public class ChatService {
 
         // 봇 응답 저장
         if ("user".equals(sender)) {
-            String botResponse = gptChatService.getChatbotResponse(botIndex, message);
-
-            if (botResponse == null || botResponse.isEmpty()) {
-                botResponse = gptChatService.generateDummyResponse(botIndex);
-            }
+            String botResponse = gptChatService.generateDummyResponse(botIndex);
 
             ChatHistory botChat = new ChatHistory();
             botChat.setUser(user);
@@ -52,18 +54,25 @@ public class ChatService {
             botChat.setMessage(botResponse);
             botChat.setSender("bot");
 
+            // **저장 전 디버깅 로그 추가**
+            logger.info("User assigned to bot chat: {}", botChat.getUser());
+            logger.info("Bot index: {}", botChat.getBotIndex());
+            logger.info("Bot message: {}", botChat.getMessage());
+            logger.info("Sender: {}", botChat.getSender());
+            logger.info("Created at: {}", botChat.getCreatedAt());
+
             try {
-                // 디버깅 로그 추가
-                System.out.println("Saving bot chat: " + botChat);
+                // 데이터 저장
                 chatHistoryRepository.save(botChat);
-                System.out.println("Bot chat saved successfully: " + botChat);
+                logger.info("Bot chat saved successfully: {}", botChat);
             } catch (Exception e) {
-                // 에러 발생 시 로그 출력
-                System.err.println("Error saving bot chat: " + e.getMessage());
-                e.printStackTrace();
+                // 오류 발생 시 로그
+                logger.error("Error saving bot chat: {}", e.getMessage(), e);
             }
         }
     }
+
+
 
     public String getBotResponse(String uid, int botIndex, String message) {
         User user = getOrCreateUser(uid);
