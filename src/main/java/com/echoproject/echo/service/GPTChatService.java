@@ -68,8 +68,24 @@ public class GPTChatService {
             return (String) message.get("content");
 
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
-            return "Error occurred while communicating with GPT.";
+            // GPT API 오류 발생 시 더미 데이터를 반환
+            return generateDummyResponse(botIndex);
+        }
+    }
+
+    // 더미 데이터를 생성하는 메서드
+    public String generateDummyResponse(int botIndex) {
+        switch (botIndex) {
+            case 0:
+                return "Hello! I'm the black guy who loves rap and basketball!";
+            case 1:
+                return "Hi there! I'm the white guy who enjoys programming and Overwatch2.";
+            case 2:
+                return "Hola! I'm a Hispanic woman who dreams of being a sports reporter!";
+            case 3:
+                return "Hey! I'm an Asian American who loves K-pop and anime!";
+            default:
+                return "Hi! I'm just a simple chatbot.";
         }
     }
 }
