@@ -35,7 +35,6 @@ public class ChatService {
     }
 
     public String getBotResponse(String uid, int botIndex, String message) {
-        // 사용자 찾기 또는 생성
         User user = getOrCreateUser(uid);
 
         // 사용자 메시지 저장
@@ -55,7 +54,6 @@ public class ChatService {
         // 봇 응답 생성
         String botResponse = gptChatService.getChatbotResponse(botIndex, message);
 
-        // 봇 응답 저장
         if (botResponse != null && !botResponse.isEmpty()) {
             ChatHistory botChat = new ChatHistory();
             botChat.setUser(user);
@@ -79,5 +77,8 @@ public class ChatService {
     public List<ChatHistory> getChatHistory(User user) {
         return chatHistoryRepository.findByUser(user);
     }
-}
 
+    public List<ChatHistory> getChatHistoryByBotIndex(User user, int botIndex) {
+        return chatHistoryRepository.findByUserAndBotIndex(user, botIndex);
+    }
+}
