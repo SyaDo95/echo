@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-
 @Service
 public class ChatService {
     private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
@@ -35,48 +34,46 @@ public class ChatService {
         return user;
     }
 
-    public void saveChatHistory(User user, int botIndex, String message, String sender) {
+    public String getBotResponse(String uid, int botIndex, String message) {
+        // 사용자 찾기 또는 생성
+        User user = getOrCreateUser(uid);
+
         // 사용자 메시지 저장
         ChatHistory userChat = new ChatHistory();
         userChat.setUser(user);
         userChat.setBotIndex(botIndex);
         userChat.setMessage(message);
-        userChat.setSender(sender);
-        chatHistoryRepository.save(userChat);
+        userChat.setSender("user");
+
+        try {
+            chatHistoryRepository.save(userChat);
+            logger.info("User message saved successfully: {}", userChat);
+        } catch (Exception e) {
+            logger.error("Error saving user message: {}", e.getMessage(), e);
+        }
+
+        // 봇 응답 생성
+        String botResponse = gptChatService.getChatbotResponse(botIndex, message);
 
         // 봇 응답 저장
-        if ("user".equals(sender)) {
-            String botResponse = gptChatService.generateDummyResponse(botIndex);
-
+        if (botResponse != null && !botResponse.isEmpty()) {
             ChatHistory botChat = new ChatHistory();
             botChat.setUser(user);
             botChat.setBotIndex(botIndex);
             botChat.setMessage(botResponse);
             botChat.setSender("bot");
 
-            // **저장 전 디버깅 로그 추가**
-            logger.info("User assigned to bot chat: {}", botChat.getUser());
-            logger.info("Bot index: {}", botChat.getBotIndex());
-            logger.info("Bot message: {}", botChat.getMessage());
-            logger.info("Sender: {}", botChat.getSender());
-            logger.info("Created at: {}", botChat.getCreatedAt());
-
             try {
-                // 데이터 저장
                 chatHistoryRepository.save(botChat);
-                logger.info("Bot chat saved successfully: {}", botChat);
+                logger.info("Bot response saved successfully: {}", botChat);
             } catch (Exception e) {
-                // 오류 발생 시 로그
-                logger.error("Error saving bot chat: {}", e.getMessage(), e);
+                logger.error("Error saving bot response: {}", e.getMessage(), e);
             }
+        } else {
+            logger.warn("Bot response is empty. Skipping save.");
         }
-    }
 
-
-
-    public String getBotResponse(String uid, int botIndex, String message) {
-        User user = getOrCreateUser(uid);
-        return gptChatService.getChatbotResponse(botIndex, message);
+        return botResponse;
     }
 
     public List<ChatHistory> getChatHistory(User user) {

@@ -1,10 +1,11 @@
-// src/main/java/com/echoproject/echo/service/GPTChatService.java
 package com.echoproject.echo.service;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.net.URL;
 public class GPTChatService {
 
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final Logger logger = LoggerFactory.getLogger(GPTChatService.class);
 
     @Value("${openai.api.key}") // application.properties에 API 키를 추가하여 사용
     private String apiKey;
@@ -29,52 +31,88 @@ public class GPTChatService {
 
     public String getChatbotResponse(int botIndex, String userMessage) {
         String prompt = botPrompts[botIndex];
-        try {
-            URL url = new URL(API_URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
+        int retries = 3; // 재시도 횟수
 
-            String requestBody = "{\n" +
-                    "  \"model\": \"gpt-3.5-turbo\",\n" +
-                    "  \"messages\": [\n" +
-                    "    {\"role\": \"system\", \"content\": \"" + prompt + "\"},\n" +
-                    "    {\"role\": \"user\", \"content\": \"" + userMessage + "\"}\n" +
-                    "  ],\n" +
-                    "  \"max_tokens\": 100\n" +
-                    "}";
+        while (retries > 0) {
+            try {
+                logger.info("Preparing request for botIndex: {}, userMessage: {}", botIndex, userMessage);
 
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = requestBody.getBytes("utf-8");
-                os.write(input, 0, input.length);
+                URL url = new URL(API_URL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                String requestBody = String.format(
+                        "{ \"model\": \"gpt-3.5-turbo\", \"messages\": [ {\"role\": \"system\", \"content\": \"%s\"}, {\"role\": \"user\", \"content\": \"%s\"} ], \"max_tokens\": 100 }",
+                        prompt, userMessage
+                );
+
+                logger.info("Request body: {}", requestBody);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = requestBody.getBytes("utf-8");
+                    os.write(input, 0, input.length);
+                }
+
+                int responseCode = conn.getResponseCode();
+                logger.info("Response code: {}", responseCode);
+
+                InputStream inputStream = responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream();
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, "utf-8"));
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+
+                logger.info("Raw API response: {}", response.toString());
+
+                JSONParser parser = new JSONParser();
+                JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
+
+                JSONArray choices = (JSONArray) jsonResponse.get("choices");
+                if (choices == null || choices.isEmpty()) {
+                    logger.warn("Choices array is null or empty. Returning dummy response.");
+                    return generateDummyResponse(botIndex);
+                }
+
+                JSONObject message = (JSONObject) ((JSONObject) choices.get(0)).get("message");
+                if (message == null) {
+                    logger.warn("Message is null in choices. Returning dummy response.");
+                    return generateDummyResponse(botIndex);
+                }
+
+                String content = (String) message.get("content");
+                logger.info("Parsed content: {}", content);
+                return content;
+
+            } catch (IOException | ParseException e) {
+                logger.error("Exception occurred: {}", e.getMessage(), e);
+                retries--;
+
+                if (retries > 0) {
+                    logger.info("Retrying... Remaining retries: {}", retries);
+                    try {
+                        Thread.sleep(2000); // 재시도 전 대기
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                } else {
+                    logger.warn("Max retries reached. Returning dummy response.");
+                    return generateDummyResponse(botIndex);
+                }
             }
-
-            int responseCode = conn.getResponseCode();
-            InputStream inputStream = responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream();
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, "utf-8"));
-            StringBuilder response = new StringBuilder();
-            String responseLine;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-
-            JSONParser parser = new JSONParser();
-            JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
-            JSONArray choices = (JSONArray) jsonResponse.get("choices");
-            JSONObject message = (JSONObject) ((JSONObject) choices.get(0)).get("message");
-            return (String) message.get("content");
-
-        } catch (IOException | ParseException e) {
-            // GPT API 오류 발생 시 더미 데이터를 반환
-            return generateDummyResponse(botIndex);
         }
+        return generateDummyResponse(botIndex); // 이 코드에는 도달하지 않지만 안전성을 위해 추가
     }
 
     // 더미 데이터를 생성하는 메서드
     public String generateDummyResponse(int botIndex) {
+        logger.info("Generating dummy response for botIndex: {}", botIndex);
         switch (botIndex) {
             case 0:
                 return "Hello! I'm the black guy who loves rap and basketball!";

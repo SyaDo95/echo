@@ -26,9 +26,7 @@ public class ChatHistoryController {
     @PostMapping("/save")
     public ResponseEntity<?> saveChat(@RequestBody ChatRequestDto chatRequest) {
         try {
-            User user = chatService.getOrCreateUser(chatRequest.getUid());
-            chatService.saveChatHistory(user, chatRequest.getBotIndex(), chatRequest.getMessage(), chatRequest.getSender());
-
+            // 사용자 메시지와 봇 응답을 모두 getBotResponse에서 처리
             String botResponse = chatService.getBotResponse(chatRequest.getUid(), chatRequest.getBotIndex(), chatRequest.getMessage());
             logger.info("Bot response generated: {}", botResponse);
 
