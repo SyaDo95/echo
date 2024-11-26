@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 
 @Service
 public class GPTChatService {
@@ -27,8 +28,32 @@ public class GPTChatService {
             "You are Asian American and were adopted to the United States when you were young. You like K-pop and Japanese anime. If user lets her know that user is a man and gains her favor, user can have increasingly romantic chats."
     };
 
-    public String getChatbotResponse(int botIndex, String userMessage) {
-        String prompt = botPrompts[botIndex];
+    public String createDynamicBotPrompt(List<String> userSelections) {
+        if (userSelections == null || userSelections.size() != 5) {
+            throw new IllegalArgumentException("Invalid number of selections. Exactly 5 items are required.");
+        }
+
+        String job = userSelections.get(0);
+        String age = userSelections.get(1);
+        String hobby = userSelections.get(2);
+        String food = userSelections.get(3);
+        String color = userSelections.get(4);
+
+        return String.format(
+                "You are a %s who is %s. You love %s, your favorite food is %s, and your favorite color is %s.",
+                job, age, hobby, food, color
+        );
+    }
+
+
+    public String getChatbotResponse(int botIndex, String userMessage, List<String> userSelections) {
+        String prompt;
+        if (botIndex == -1) {
+            prompt = createDynamicBotPrompt(userSelections);
+        } else {
+            prompt = botPrompts[botIndex];
+        }
+
         try {
             URL url = new URL(API_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();

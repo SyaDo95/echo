@@ -1,4 +1,3 @@
-// src/main/java/com/echoproject/echo/controller/GPTChatController.java
 package com.echoproject.echo.controller;
 
 import com.echoproject.echo.service.GPTChatService;
@@ -7,7 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+
 
 @RestController
 @RequestMapping("/api/chat")
@@ -21,8 +23,16 @@ public class GPTChatController {
     public ResponseEntity<Map<String, String>> getChatResponse(@RequestBody Map<String, Object> request) {
         int botIndex = (int) request.get("botIndex");
         String userMessage = (String) request.get("userMessage");
+        List<String> userSelections = (List<String>) request.get("userSelections"); // 추가된 사용자 선택
 
-        String botResponse = gptChatService.getChatbotResponse(botIndex, userMessage);
+        String botResponse;
+
+        // botIndex가 -1이면 동적 프롬프트를 생성
+        if (botIndex == -1) {
+            botResponse = gptChatService.getChatbotResponse(botIndex, userMessage, userSelections);
+        } else {
+            botResponse = gptChatService.getChatbotResponse(botIndex, userMessage, null);
+        }
 
         Map<String, String> response = new HashMap<>();
         response.put("reply", botResponse);

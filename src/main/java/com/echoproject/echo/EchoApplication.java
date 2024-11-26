@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.IOException;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.echoproject")
 public class EchoApplication {
 
 	public static void main(String[] args) {
