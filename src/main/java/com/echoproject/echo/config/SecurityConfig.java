@@ -12,7 +12,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/chat/**").permitAll() // `/api/chat` 경로 허용
+                        .requestMatchers("/api/chat/**", "/api/newchatbot/**").permitAll() // 특정 경로만 허용
                         .anyRequest().authenticated() // 그 외의 요청은 인증 필요
                 );
         return http.build();
